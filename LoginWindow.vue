@@ -25,9 +25,9 @@
                   <v-form ref="loginForm" v-model="validForms.login">
                     <v-text-field
                       v-model="username"
-                      label="Username or Email"
-                      :rules="usernameRules"
-                      prepend-icon="mdi-account"
+                      label="Email Address"
+                      :rules="emailRules"
+                      prepend-icon="mdi-email"
                       outlined
                       dense
                       clearable
@@ -457,8 +457,18 @@ export default {
 
     async login() {
       try {
-        const { isSignedIn, nextStep } = await signIn({
+        // Check if input looks like an email
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.username);
+        
+        // For debugging - you can remove these console.logs later
+        console.log('Login attempt with:', {
           username: this.username,
+          isEmail: isEmail,
+          inputType: isEmail ? 'email' : 'username'
+        });
+
+        const { isSignedIn, nextStep } = await signIn({
+          username: this.username, // AWS Amplify will handle both username and email
           password: this.password,
         });
 
@@ -484,8 +494,26 @@ export default {
         }
       } catch (error) {
         console.error('Login error:', error);
+        
+        // More specific error handling
+        let errorMessage = 'Login failed. Please check your credentials.';
+        
+        if (error.name === 'NotAuthorizedException') {
+          if (error.message.includes('Incorrect username or password')) {
+            errorMessage = 'Incorrect username/email or password. Please check your credentials.';
+          } else if (error.message.includes('User is not confirmed')) {
+            errorMessage = 'Please verify your email address before logging in.';
+          } else if (error.message.includes('Password attempts exceeded')) {
+            errorMessage = 'Too many failed attempts. Please try again later.';
+          }
+        } else if (error.name === 'UserNotFoundException') {
+          errorMessage = 'User not found. Please check your username/email or sign up.';
+        } else if (error.name === 'UserNotConfirmedException') {
+          errorMessage = 'Please verify your email address first.';
+        }
+        
         this.snackbar.color = 'error';
-        this.snackbar.message = 'Login did not work. Please check your username or password.';
+        this.snackbar.message = errorMessage;
         this.snackbar.show = true;
       }   
     },
