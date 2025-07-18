@@ -10,17 +10,11 @@
             <v-window v-model="formMode" direction="horizontal-reverse">
               <!-- Login Window -->
               <v-window-item value="login">
-                <v-img
-                  src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606"
-                  height="60"
-                  cover
-                >
-                  <div class="title-overlay">
-                    <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
-                      Login
-                    </v-card-title>
-                  </div>
-                </v-img>
+                <div class="header-blur">
+                  <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
+                    Login
+                  </v-card-title>
+                </div>
                 <!-- Form -->
                 <v-card-text class="card-content">
                   <!-- Login Method Selection -->
@@ -148,13 +142,11 @@
               
               <!--Sign Up-->
               <v-window-item value="signup">
-                <v-img src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606" height="60" cover>
-                  <div class="title-overlay">
-                    <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
-                      {{ showVerification ? 'Verify Account' : 'Sign Up' }}
-                    </v-card-title>
-                  </div>
-                </v-img>
+                <div class="header-blur">
+                  <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
+                    {{ showVerification ? 'Verify Account' : 'Sign Up' }}
+                  </v-card-title>
+                </div>
                 <v-card-text class="card-content">
                   <!-- Signup Method Selection -->
                   <v-btn-toggle
@@ -291,13 +283,11 @@
 
               <!--Forgot Password-->
               <v-window-item value="forgotPassword">
-                <v-img src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606" height="60" cover>
-                  <div class="title-overlay">
-                    <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
-                      Reset Password
-                    </v-card-title>
-                  </div>
-                </v-img>
+                <div class="header-blur">
+                  <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
+                    Reset Password
+                  </v-card-title>
+                </div>
                 <v-card-text class="card-content">
                   <v-form ref="forgotPasswordForm" v-model="validForms.forgotPassword">
                     <v-text-field
@@ -327,17 +317,11 @@
               </v-window-item>
 
               <v-window-item value="confirmResetPassword">
-                <v-img 
-                  src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606"
-                  height="60"
-                  cover
-                >
-                  <div class="title-overlay">
-                    <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
-                      Set New Password
-                    </v-card-title>
-                  </div>
-                </v-img>
+                <div class="header-blur">
+                  <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
+                    Set New Password
+                  </v-card-title>
+                </div>
                 <v-card-text class="card-content">
                   <v-form ref="confirmResetPasswordForm" v-model="validForms.confirmResetPassword">
                     <v-text-field
@@ -402,17 +386,11 @@
               
               <!--CHANGE OF PASSWORD-->
               <v-window-item value="changePassword">
-                <v-img
-                  src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606"
-                  height="60"
-                  cover
-                >
-                  <div class="title-overlay">
-                    <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
-                      Change Password
-                    </v-card-title>
-                  </div>
-                </v-img>
+                <div class="header-blur">
+                  <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
+                    Change Password
+                  </v-card-title>
+                </div>
                 <v-card-text class="card-content">
                   <v-form ref="changePasswordForm" v-model="validForms.changePassword">
                     <v-text-field
@@ -1065,18 +1043,40 @@ export default {
   padding: 0;
   margin: 0;
 }
-.title-overlay {
-  background: rgba(0, 0, 0, 0.4);
-  height: 100%;
+
+.header-blur {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
+
+.header-blur::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(80, 227, 194, 0.1));
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  z-index: -1;
+}
+
 .login-card {
   border-radius: 16px;
   overflow: hidden;
-  background-color: whitesmoke;
-  backdrop-filter: blur(3px);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 html,
 body {
