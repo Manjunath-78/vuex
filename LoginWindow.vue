@@ -174,58 +174,79 @@
                   </v-btn-toggle>
 
                   <v-form ref="signupForm" v-model="validForms.signup">
-                    <v-text-field
-                      v-if="!showVerification"
-                      v-model="username"
-                      label="Username"
-                      :rules="usernameRules"
-                      prepend-icon="mdi-account"
-                      outlined
-                      dense
-                      clearable
-                      color="primary"
-                      class="mb-3"
-                    />
-                    <v-text-field
-                      v-if="!showVerification && signupMethod === 'email'"
-                      v-model="emailInput"
-                      label="Email"
-                      :rules="emailRules"
-                      prepend-icon="mdi-email"
-                      outlined
-                      dense
-                      clearable
-                      color="primary"
-                      class="mb-3"
-                    />
-                    <v-text-field
-                      v-if="!showVerification && signupMethod === 'phone'"
-                      v-model="phoneNumber"
-                      label="Phone Number"
-                      :rules="phoneRules"
-                      prepend-icon="mdi-phone"
-                      outlined
-                      dense
-                      clearable
-                      color="primary"
-                      class="mb-3"
-                      placeholder="+1234567890"
-                    />
-                    <v-text-field
-                      v-if="!showVerification"
-                      v-model="password"
-                      :type="showPassword ? 'text' : 'password'"
-                      label="Password"
-                      :rules="passwordRules"
-                      prepend-icon="mdi-lock"
-                      :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                      @click:append-inner="showPassword = !showPassword"
-                      outlined
-                      dense
-                      clearable
-                      color="primary"
-                      class="mb-3"
-                    />
+                    <!-- Email Signup Fields -->
+                    <template v-if="signupMethod === 'email'">
+                      <v-text-field
+                        v-if="!showVerification"
+                        v-model="username"
+                        label="Username"
+                        :rules="usernameRules"
+                        prepend-icon="mdi-account"
+                        outlined
+                        dense
+                        clearable
+                        color="primary"
+                        class="mb-3"
+                      />
+                      <v-text-field
+                        v-if="!showVerification"
+                        v-model="emailInput"
+                        label="Email"
+                        :rules="emailRules"
+                        prepend-icon="mdi-email"
+                        outlined
+                        dense
+                        clearable
+                        color="primary"
+                        class="mb-3"
+                      />
+                      <v-text-field
+                        v-if="!showVerification"
+                        v-model="password"
+                        :type="showPassword ? 'text' : 'password'"
+                        label="Password"
+                        :rules="passwordRules"
+                        prepend-icon="mdi-lock"
+                        :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                        @click:append-inner="showPassword = !showPassword"
+                        outlined
+                        dense
+                        clearable
+                        color="primary"
+                        class="mb-3"
+                      />
+                    </template>
+
+                    <!-- Phone Signup Fields -->
+                    <template v-if="signupMethod === 'phone'">
+                      <v-text-field
+                        v-if="!showVerification"
+                        v-model="phoneNumber"
+                        label="Phone Number"
+                        :rules="phoneRules"
+                        prepend-icon="mdi-phone"
+                        outlined
+                        dense
+                        clearable
+                        color="primary"
+                        class="mb-3"
+                        placeholder="+1234567890"
+                      />
+                      <v-text-field
+                        v-if="!showVerification"
+                        v-model="username"
+                        label="Display Name (Optional)"
+                        :rules="phoneUsernameRules"
+                        prepend-icon="mdi-account"
+                        outlined
+                        dense
+                        clearable
+                        color="primary"
+                        class="mb-3"
+                        hint="This will be your display name"
+                      />
+                    </template>
+
                     <v-otp-input
                       v-if="showVerification"
                       v-model="verificationCode"
@@ -238,6 +259,7 @@
                       prepend-icon="mdi-shield-check"
                       class="mb-3"
                     />
+
                     <v-btn
                         block
                       color="green-darken-1"
@@ -246,7 +268,18 @@
                       :disabled="!validForms.signup"
                       @click="handleSubmit('signup')"
                     >
-                      {{ showVerification ? 'Confirm Sign Up' : 'Sign Up' }}
+                      {{ showVerification ? 'Verify & Complete Signup' : (signupMethod === 'phone' ? 'Send Verification Code' : 'Sign Up') }}
+                    </v-btn>
+
+                    <!-- Back button for phone verification -->
+                    <v-btn 
+                      v-if="showVerification && signupMethod === 'phone'"
+                      text 
+                      color="blue-lighten-3" 
+                      class="mt-2 text-caption w-100"
+                      @click="showVerification = false; verificationCode = ''"
+                    >
+                      Back to Phone Number
                     </v-btn>
                   </v-form>
                 </v-card-text>
@@ -504,6 +537,11 @@ export default {
         v => !!v || 'Phone number is required',
         v => /^\+?[1-9]\d{1,14}$/.test(v) || 'Enter a valid phone number with country code (e.g., +1234567890)',
       ],
+      phoneUsernameRules: [
+        // Optional validation for phone signup - less strict
+        v => !v || v.length >= 2 || 'Display name must be at least 2 characters',
+        v => !v || /^[a-zA-Z0-9._\s-]{2,}$/.test(v) || 'Display name can only contain letters, numbers, spaces, dots, underscores, and hyphens',
+      ],
       passwordRules: [
         v => !!v || 'Password is required',
         v => v.length >= 8 || 'Minimum 8 characters',
@@ -651,35 +689,62 @@ export default {
 
     async signUp() {
       try {
-        const signUpData = {
-          username: this.signupMethod === 'phone' ? this.phoneNumber : this.email,
-          password: this.password,
-          options: {
-            userAttributes: {
-              name: this.username,
-            },
-            autoSignIn: true,
-          },
-        };
-
-        // Add phone number or email to user attributes
         if (this.signupMethod === 'phone') {
-          signUpData.options.userAttributes.phone_number = this.phoneNumber;
-        } else {
-          signUpData.options.userAttributes.email = this.email;
-        }
+          // Phone signup - no password required, just send OTP
+          if (!this.showVerification) {
+            // First step: Send OTP to phone number
+            this.showVerification = true;
+            this.snackbar.color = 'info';
+            this.snackbar.message = `Verification code sent to ${this.phoneNumber}. For demo purposes, use: ${this.HARDCODED_OTP}`;
+            this.snackbar.show = true;
+            return;
+          } else {
+            // Second step: Verify OTP and complete signup
+            if (this.verificationCode !== this.HARDCODED_OTP) {
+              this.snackbar.color = 'error';
+              this.snackbar.message = 'Invalid verification code. Please try again.';
+              this.snackbar.show = true;
+              return;
+            }
 
-        const { nextStep } = await signUp(signUpData);
-        
-        if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
-          this.showVerification = true;
-          this.snackbar.color = 'success';
-          this.snackbar.message = `Please enter the verification code sent to your ${this.signupMethod}.`;
-          this.snackbar.show = true;
+            // In real implementation, create user account with phone number
+            // For now, simulate successful phone signup
+            this.snackbar.color = 'success';
+            this.snackbar.message = 'Phone signup successful! You can now login with your phone number.';
+            this.snackbar.show = true;
+            
+            setTimeout(() => {
+              this.formMode = 'login';
+              this.loginMethod = 'phone';
+            }, 2000);
+            return;
+          }
         } else {
-          this.snackbar.color = 'success';
-          this.snackbar.message = 'Sign-up successful';
-          this.snackbar.show = true;
+          // Email signup - traditional flow with password
+          const signUpData = {
+            username: this.email,
+            password: this.password,
+            options: {
+              userAttributes: {
+                name: this.username,
+                email: this.email,
+              },
+              autoSignIn: true,
+            },
+          };
+
+          const { nextStep } = await signUp(signUpData);
+          
+          if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+            this.showVerification = true;
+            this.snackbar.color = 'success';
+            this.snackbar.message = 'Please enter the verification code sent to your email.';
+            this.snackbar.show = true;
+          } else {
+            this.snackbar.color = 'success';
+            this.snackbar.message = 'Sign-up successful';
+            this.snackbar.show = true;
+          }
         }
       } catch (error) {
         this.snackbar.color = 'error';
@@ -691,23 +756,28 @@ export default {
 
     async confirmSignUp() {
       try {
-        const { isSignUpComplete } = await confirmSignUp({
-          username: this.signupMethod === 'phone' ? this.phoneNumber : this.email,
-          confirmationCode: this.verificationCode,
-        });
-        if (isSignUpComplete) {
-          this.snackbar.color = 'success';
-          this.snackbar.message = 'Account verified successfully';
-          this.snackbar.show = true;
-          this.showVerification = false;
-          await signOut();
-          setTimeout(() => {
-            this.formMode = 'login';
-          }, 1500);
-        } else {
-          this.snackbar.color = 'error';
-          this.snackbar.message = 'Verification failed. Check your code.';
-          this.snackbar.show = true;
+        // This method is only for email signup confirmation
+        // Phone signup confirmation is handled in the signUp method
+        if (this.signupMethod === 'email') {
+          const { isSignUpComplete } = await confirmSignUp({
+            username: this.email,
+            confirmationCode: this.verificationCode,
+          });
+          if (isSignUpComplete) {
+            this.snackbar.color = 'success';
+            this.snackbar.message = 'Email verified successfully';
+            this.snackbar.show = true;
+            this.showVerification = false;
+            await signOut();
+            setTimeout(() => {
+              this.formMode = 'login';
+              this.loginMethod = 'email';
+            }, 1500);
+          } else {
+            this.snackbar.color = 'error';
+            this.snackbar.message = 'Verification failed. Check your code.';
+            this.snackbar.show = true;
+          }
         }
       } catch (error) {
         this.snackbar.color = 'error';
@@ -858,6 +928,10 @@ export default {
     loginMethod() {
       this.showPhoneOTP = false;
       this.phoneOTP = '';
+    },
+    signupMethod() {
+      this.showVerification = false;
+      this.verificationCode = '';
     },
   },
 };
