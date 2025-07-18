@@ -487,7 +487,7 @@
 
 <script>
 // Import AWS Amplify Auth methods
-import { signIn, signUp, confirmSignUp, resetPassword, confirmResetPassword, updatePassword, signOut, getCurrentUser } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, confirmSignIn, resetPassword, confirmResetPassword, updatePassword, signOut, getCurrentUser } from 'aws-amplify/auth';
 import { onMounted } from 'vue';
 
 export default {
@@ -610,46 +610,81 @@ export default {
 
     async handlePhoneLogin() {
       if (!this.showPhoneOTP) {
-        // First step: Send OTP (simulated with hardcoded value)
-        this.showPhoneOTP = true;
-        this.snackbar.color = 'info';
-        this.snackbar.message = `OTP sent to ${this.phoneNumber}. For demo purposes, use: ${this.HARDCODED_OTP}`;
-        this.snackbar.show = true;
+        // First step: Initiate phone login with AWS Amplify
+        try {
+          const { isSignedIn, nextStep } = await signIn({
+            username: this.phoneNumber,
+            options: {
+              authFlowType: 'CUSTOM_WITH_SRP' // Use custom auth flow for phone
+            }
+          });
+
+          if (isSignedIn) {
+            this.snackbar.color = 'success';
+            this.snackbar.message = 'Phone login successful!';
+            this.snackbar.show = true;
+            setTimeout(() => {
+              this.$router.push('/dashboard');
+            }, 1500);
+          } else if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_SMS_MFA' || 
+                     nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_CUSTOM_CHALLENGE') {
+            this.showPhoneOTP = true;
+            this.snackbar.color = 'info';
+            this.snackbar.message = `Verification code sent to ${this.phoneNumber}`;
+            this.snackbar.show = true;
+          } else {
+            // Fallback to hardcoded OTP for demo purposes
+            this.showPhoneOTP = true;
+            this.snackbar.color = 'info';
+            this.snackbar.message = `OTP sent to ${this.phoneNumber}. For demo purposes, use: ${this.HARDCODED_OTP}`;
+            this.snackbar.show = true;
+          }
+        } catch (error) {
+          // If AWS auth fails, fallback to demo mode
+          console.log('AWS phone auth not configured, using demo mode:', error);
+          this.showPhoneOTP = true;
+          this.snackbar.color = 'info';
+          this.snackbar.message = `Demo mode: Use OTP ${this.HARDCODED_OTP} for ${this.phoneNumber}`;
+          this.snackbar.show = true;
+        }
         return;
       }
 
       // Second step: Verify OTP
-      if (this.phoneOTP !== this.HARDCODED_OTP) {
-        this.snackbar.color = 'error';
-        this.snackbar.message = 'Invalid OTP. Please try again.';
-        this.snackbar.show = true;
-        return;
-      }
-
       try {
-        // In a real implementation, you would use AWS Amplify's phone authentication
-        // For now, we'll simulate a successful phone login
-        this.snackbar.color = 'success';
-        this.snackbar.message = 'Phone login successful!';
-        this.snackbar.show = true;
-        
-        setTimeout(() => {
-          this.$router.push('/dashboard');
-        }, 1500);
+        // Try AWS Amplify confirmation first
+        const { isSignedIn } = await confirmSignIn({
+          challengeResponse: this.phoneOTP
+        });
 
-        // If you want to integrate with AWS Amplify phone auth, you would use:
-        // const { isSignedIn } = await signIn({
-        //   username: this.phoneNumber,
-        //   options: {
-        //     authFlowType: 'CUSTOM_WITH_SRP' // or appropriate flow for phone auth
-        //   }
-        // });
+        if (isSignedIn) {
+          this.snackbar.color = 'success';
+          this.snackbar.message = 'Phone login successful!';
+          this.snackbar.show = true;
+          setTimeout(() => {
+            this.$router.push('/dashboard');
+          }, 1500);
+          return;
+        }
       } catch (error) {
-        this.snackbar.color = 'error';
-        this.snackbar.message = 'Phone login failed. Please try again.';
-        this.snackbar.show = true;
-        console.error("Phone login error:", error);
+        console.log('AWS confirm sign in failed, trying demo mode:', error);
+        
+        // Fallback to hardcoded OTP verification
+        if (this.phoneOTP === this.HARDCODED_OTP) {
+          this.snackbar.color = 'success';
+          this.snackbar.message = 'Phone login successful! (Demo mode)';
+          this.snackbar.show = true;
+          setTimeout(() => {
+            this.$router.push('/dashboard');
+          }, 1500);
+          return;
+        }
       }
+
+      // If we reach here, OTP was invalid
+      this.snackbar.color = 'error';
+      this.snackbar.message = 'Invalid OTP. Please try again.';
+      this.snackbar.show = true;
     },
 
     async login() {
@@ -666,7 +701,7 @@ export default {
           setTimeout(() => {
             this.$router.push('/dashboard');
           }, 1500);
-        } else {
+        } else if (nextStep) {
           let loginMessage = 'Something went wrong with your login. Try again.';
           if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_SMS_MFA' || nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_TOTP_MFA') {
             loginMessage = 'We sent a code to verify your login.';
@@ -674,14 +709,28 @@ export default {
             loginMessage = 'Looks like you need to reset your password.';
           } else if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
             loginMessage = 'You need to set a new password. Follow the steps to continue.';
+          } else if (nextStep.signInStep === 'CONFIRM_SIGN_UP') {
+            loginMessage = 'Please verify your account first.';
           }
-          this.snackbar.color = 'error';
+          this.snackbar.color = 'warning';
           this.snackbar.message = loginMessage;
           this.snackbar.show = true;
         }
       } catch (error) {
         this.snackbar.color = 'error';
-        this.snackbar.message = 'Login failed. Please check your username or password.';
+        let errorMessage = 'Login failed. Please check your credentials.';
+        
+        if (error.name === 'NotAuthorizedException') {
+          errorMessage = 'Incorrect username or password.';
+        } else if (error.name === 'UserNotConfirmedException') {
+          errorMessage = 'Please verify your account first.';
+        } else if (error.name === 'UserNotFoundException') {
+          errorMessage = 'User not found. Please check your username.';
+        } else if (error.name === 'TooManyRequestsException') {
+          errorMessage = 'Too many login attempts. Please try again later.';
+        }
+        
+        this.snackbar.message = errorMessage;
         this.snackbar.show = true;
         console.error("Login error:", error);
       }
@@ -690,65 +739,84 @@ export default {
     async signUp() {
       try {
         if (this.signupMethod === 'phone') {
-          // Phone signup - no password required, just send OTP
+          // Phone signup with AWS Amplify
           if (!this.showVerification) {
-            // First step: Send OTP to phone number
-            this.showVerification = true;
-            this.snackbar.color = 'info';
-            this.snackbar.message = `Verification code sent to ${this.phoneNumber}. For demo purposes, use: ${this.HARDCODED_OTP}`;
-            this.snackbar.show = true;
-            return;
-          } else {
-            // Second step: Verify OTP and complete signup
-            if (this.verificationCode !== this.HARDCODED_OTP) {
-              this.snackbar.color = 'error';
-              this.snackbar.message = 'Invalid verification code. Please try again.';
-              this.snackbar.show = true;
-              return;
-            }
+            // First step: Create account with phone number
+            const { isSignUpComplete, userId, nextStep } = await signUp({
+              username: this.phoneNumber, // Use phone as username
+              password: this.generateTempPassword(), // Generate temporary password for phone users
+              options: {
+                userAttributes: {
+                  phone_number: this.phoneNumber, // E.164 format
+                  name: this.username || 'Phone User', // Use provided name or default
+                },
+                autoSignIn: false // We'll handle sign in separately for phone users
+              }
+            });
 
-            // In real implementation, create user account with phone number
-            // For now, simulate successful phone signup
-            this.snackbar.color = 'success';
-            this.snackbar.message = 'Phone signup successful! You can now login with your phone number.';
-            this.snackbar.show = true;
+            console.log('Phone signup userId:', userId);
             
-            setTimeout(() => {
-              this.formMode = 'login';
-              this.loginMethod = 'phone';
-            }, 2000);
-            return;
+            if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+              this.showVerification = true;
+              this.snackbar.color = 'success';
+              this.snackbar.message = `Verification code sent to ${this.phoneNumber}`;
+              this.snackbar.show = true;
+            } else if (isSignUpComplete) {
+              this.snackbar.color = 'success';
+              this.snackbar.message = 'Phone signup completed successfully!';
+              this.snackbar.show = true;
+              setTimeout(() => {
+                this.formMode = 'login';
+                this.loginMethod = 'phone';
+              }, 2000);
+            }
+          } else {
+            // Second step: Confirm phone signup
+            await this.confirmSignUp();
           }
         } else {
-          // Email signup - traditional flow with password
-          const signUpData = {
+          // Email signup with AWS Amplify
+          const { isSignUpComplete, userId, nextStep } = await signUp({
             username: this.email,
             password: this.password,
             options: {
               userAttributes: {
-                name: this.username,
                 email: this.email,
+                name: this.username,
               },
-              autoSignIn: true,
-            },
-          };
+              autoSignIn: true
+            }
+          });
 
-          const { nextStep } = await signUp(signUpData);
+          console.log('Email signup userId:', userId);
           
           if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
             this.showVerification = true;
             this.snackbar.color = 'success';
             this.snackbar.message = 'Please enter the verification code sent to your email.';
             this.snackbar.show = true;
-          } else {
+          } else if (isSignUpComplete) {
             this.snackbar.color = 'success';
-            this.snackbar.message = 'Sign-up successful';
+            this.snackbar.message = 'Sign-up completed successfully!';
             this.snackbar.show = true;
+            setTimeout(() => {
+              this.$router.push('/dashboard');
+            }, 1500);
           }
         }
       } catch (error) {
         this.snackbar.color = 'error';
-        this.snackbar.message = 'Sign-up failed. Please try again.';
+        let errorMessage = 'Sign-up failed. Please try again.';
+        
+        if (error.name === 'UsernameExistsException') {
+          errorMessage = this.signupMethod === 'phone' ? 'This phone number is already registered.' : 'This email is already registered.';
+        } else if (error.name === 'InvalidPasswordException') {
+          errorMessage = 'Password does not meet the requirements.';
+        } else if (error.name === 'InvalidParameterException') {
+          errorMessage = 'Invalid input. Please check your information.';
+        }
+        
+        this.snackbar.message = errorMessage;
         this.snackbar.show = true;
         console.error("Sign-up error:", error);
       }
@@ -756,35 +824,80 @@ export default {
 
     async confirmSignUp() {
       try {
-        // This method is only for email signup confirmation
-        // Phone signup confirmation is handled in the signUp method
-        if (this.signupMethod === 'email') {
-          const { isSignUpComplete } = await confirmSignUp({
-            username: this.email,
-            confirmationCode: this.verificationCode,
-          });
-          if (isSignUpComplete) {
-            this.snackbar.color = 'success';
-            this.snackbar.message = 'Email verified successfully';
-            this.snackbar.show = true;
-            this.showVerification = false;
-            await signOut();
+        const username = this.signupMethod === 'phone' ? this.phoneNumber : this.email;
+        
+        const { isSignUpComplete } = await confirmSignUp({
+          username: username,
+          confirmationCode: this.verificationCode,
+        });
+        
+        if (isSignUpComplete) {
+          this.snackbar.color = 'success';
+          this.snackbar.message = this.signupMethod === 'phone' ? 'Phone number verified successfully' : 'Email verified successfully';
+          this.snackbar.show = true;
+          this.showVerification = false;
+          
+          if (this.signupMethod === 'phone') {
+            // For phone users, redirect to phone login
+            setTimeout(() => {
+              this.formMode = 'login';
+              this.loginMethod = 'phone';
+            }, 1500);
+          } else {
+            // For email users, they might be auto-signed in, so sign out first
+            try {
+              await signOut();
+            } catch (signOutError) {
+              // User might not be signed in, that's okay
+              console.log('No user to sign out');
+            }
             setTimeout(() => {
               this.formMode = 'login';
               this.loginMethod = 'email';
             }, 1500);
-          } else {
-            this.snackbar.color = 'error';
-            this.snackbar.message = 'Verification failed. Check your code.';
-            this.snackbar.show = true;
           }
+        } else {
+          this.snackbar.color = 'error';
+          this.snackbar.message = 'Verification failed. Check your code.';
+          this.snackbar.show = true;
         }
       } catch (error) {
         this.snackbar.color = 'error';
-        this.snackbar.message = 'Verification failed. Please try again.';
+        let errorMessage = 'Verification failed. Please try again.';
+        
+        if (error.name === 'CodeMismatchException') {
+          errorMessage = 'Invalid verification code.';
+        } else if (error.name === 'ExpiredCodeException') {
+          errorMessage = 'Verification code has expired.';
+        } else if (error.name === 'UserNotFoundException') {
+          errorMessage = 'User not found.';
+        }
+        
+        this.snackbar.message = errorMessage;
         this.snackbar.show = true;
         console.error("Confirmation error:", error);
       }
+    },
+
+    generateTempPassword() {
+      // Generate a temporary password for phone users that meets AWS Cognito requirements
+      const length = 12;
+      const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%";
+      let password = "";
+      
+      // Ensure we have at least one of each required character type
+      password += "A"; // Uppercase
+      password += "a"; // Lowercase  
+      password += "1"; // Number
+      password += "@"; // Special character
+      
+      // Fill the rest randomly
+      for (let i = password.length; i < length; i++) {
+        password += charset.charAt(Math.floor(Math.random() * charset.length));
+      }
+      
+      // Shuffle the password
+      return password.split('').sort(() => 0.5 - Math.random()).join('');
     },
 
     async handleResetPassword() {
