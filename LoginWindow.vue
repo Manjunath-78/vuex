@@ -12,7 +12,7 @@
               <v-window-item value="login">
                 <v-img
                   src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606"
-                  height="92"
+                  height="60"
                   cover
                 >
                   <div class="title-overlay">
@@ -29,7 +29,8 @@
                     mandatory
                     divided
                     color="primary"
-                    class="mb-4 w-100"
+                    size="small"
+                    class="mb-3 w-100"
                   >
                     <v-btn value="email" class="flex-grow-1">
                       <v-icon left>mdi-email</v-icon>
@@ -109,7 +110,8 @@
                     <v-btn 
                       block 
                       color="green-darken-1" 
-                      class="mt-4 py-2 font-weight-bold" 
+                      class="mt-3 py-1 font-weight-bold" 
+                      size="small"
                       :loading="loading" 
                       :disabled="!validForms.login" 
                       @click="handleSubmit('login')"
@@ -146,7 +148,7 @@
               
               <!--Sign Up-->
               <v-window-item value="signup">
-                <v-img src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606" height="90" cover>
+                <v-img src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606" height="60" cover>
                   <div class="title-overlay">
                     <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
                       {{ showVerification ? 'Verify Account' : 'Sign Up' }}
@@ -161,7 +163,8 @@
                     mandatory
                     divided
                     color="primary"
-                    class="mb-4 w-100"
+                    size="small"
+                    class="mb-3 w-100"
                   >
                     <v-btn value="email" class="flex-grow-1">
                       <v-icon left>mdi-email</v-icon>
@@ -263,7 +266,8 @@
                     <v-btn
                         block
                       color="green-darken-1"
-                      class="mt-4 py-2 font-weight-bold"
+                      class="mt-3 py-1 font-weight-bold"
+                      size="small"
                       :loading="loading"
                       :disabled="!validForms.signup"
                       @click="handleSubmit('signup')"
@@ -287,7 +291,7 @@
 
               <!--Forgot Password-->
               <v-window-item value="forgotPassword">
-                <v-img src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606" height="140" cover>
+                <v-img src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606" height="60" cover>
                   <div class="title-overlay">
                     <v-card-title class="white--text text-h5 font-weight-bold text-center w-100">
                       Reset Password
@@ -310,7 +314,8 @@
                     <v-btn
                       block
                       color="green-darken-1"
-                      class="mt-4 py-2 font-weight-bold"
+                      class="mt-3 py-1 font-weight-bold"
+                      size="small"
                       :loading="loading"
                       :disabled="!validForms.forgotPassword || resetCooldown"
                       @click="handleSubmit('forgotPassword')"
@@ -324,7 +329,7 @@
               <v-window-item value="confirmResetPassword">
                 <v-img 
                   src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606"
-                  height="140"
+                  height="60"
                   cover
                 >
                   <div class="title-overlay">
@@ -374,7 +379,8 @@
                     <v-btn
                       block
                       color="green-darken-1"
-                      class="mt-4 py-2 font-weight-bold"
+                      class="mt-3 py-1 font-weight-bold"
+                      size="small"
                       :loading="loading"
                       :disabled="!validForms.confirmResetPassword"
                       @click="handleSubmit('confirmResetPassword')"
@@ -398,7 +404,7 @@
               <v-window-item value="changePassword">
                 <v-img
                   src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606"
-                  height="140"
+                  height="60"
                   cover
                 >
                   <div class="title-overlay">
@@ -438,7 +444,8 @@
                     <v-btn
                       block
                       color="green-darken-1"
-                      class="mt-4 py-2 font-weight-bold"
+                      class="mt-3 py-1 font-weight-bold"
+                      size="small"
                       :loading="loading"
                       :disabled="!validForms.changePassword"
                       @click="handleSubmit('changePassword')"
@@ -1081,5 +1088,32 @@ body {
 
 .w-100 {
   width: 100%;
+}
+
+/* Compact design styles */
+.card-content {
+  padding: 12px 16px !important;
+}
+
+.v-text-field {
+  margin-bottom: 8px !important;
+}
+
+.v-btn-toggle {
+  height: 32px !important;
+}
+
+.v-btn-toggle .v-btn {
+  font-size: 0.875rem !important;
+  padding: 0 12px !important;
+}
+
+.login-card {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.v-otp-input {
+  margin-bottom: 8px !important;
 }
 </style>
