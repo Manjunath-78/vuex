@@ -6,6 +6,12 @@
       class="ma-5 mb-10"
       :class="$vuetify.display.xs ? 'amountdet pa-2' : 'mt-4 mx-8 mb-15 pa-4'"
     >
+      <!-- Debug info for button visibility -->
+      <div style="background: yellow; padding: 5px; margin: 5px;">
+        DEBUG: menthumCore.init_from = "{{ menthumCore.init_from }}"<br>
+        Button should show: {{ menthumCore.init_from === 'Corporate' || menthumCore.init_from === 'Corporate Mobile' }}
+      </div>
+      
       <v-row class="mb-4">
         <v-btn
           v-if="
@@ -25,6 +31,17 @@
           >
           <span class="ml-2">{{ $t("WorkFlowList") }}</span>
         </v-btn>
+        
+        <!-- TEMPORARY TEST BUTTON - Always visible -->
+        <v-btn
+          variant="outlined"
+          color="red"
+          class="ml-2"
+          @click="txnWorkFlowAction"
+        >
+          TEST DIALOG BUTTON
+        </v-btn>
+        
         <v-spacer />
         <v-btn
           variant="flat"
@@ -266,11 +283,17 @@
         </v-col>
       </v-row>
       
+      <!-- Debug info -->
+      <div v-if="TxnWorkFlowDialog" style="position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 10px; z-index: 9999;">
+        DEBUG: Dialog should be open! TxnWorkFlowDialog = {{ TxnWorkFlowDialog }}
+      </div>
+      
       <!-- Fixed WorkflowDialog component -->
       <WorkflowDialog
         v-model="TxnWorkFlowDialog"
         :menthumCore="menthumCore"
         @update:modelValue="txnWorkFlowDialogEmit"
+        @clicked="txnWorkFlowDialogEmit"
       />
     </v-card>
   </div>
@@ -278,7 +301,7 @@
 
 <script>
 import { format, parseISO } from "date-fns";
-import WorkflowDialog from "./WorkflowDialog.vue";
+import WorkflowDialog from "./WorkflowDialog_Test.vue";
 import SnackBar from "@/components/Extras/SnackBar.vue";
 import { commonAPICallMethod } from "@/mixins/commonAPICallMethod.js";
 
@@ -669,11 +692,23 @@ export default {
       this.$refs.form.reset();
       this.$emit("clicked", toggle);
     },
-    // Fixed method - added console.log for debugging
+    // Enhanced debugging method
     txnWorkFlowAction() {
-      console.log("Button clicked - opening dialog");
+      console.log("=== BUTTON CLICKED ===");
+      console.log("Before - TxnWorkFlowDialog:", this.TxnWorkFlowDialog);
+      console.log("menthumCore.init_from:", this.menthumCore.init_from);
+      console.log("Button should be visible:", 
+        this.menthumCore.init_from === 'Corporate' || 
+        this.menthumCore.init_from === 'Corporate Mobile'
+      );
+      
       this.TxnWorkFlowDialog = true;
-      console.log("TxnWorkFlowDialog set to:", this.TxnWorkFlowDialog);
+      
+      console.log("After - TxnWorkFlowDialog:", this.TxnWorkFlowDialog);
+      console.log("=== END DEBUG ===");
+      
+      // Force reactivity update
+      this.$forceUpdate();
     },
     // Fixed method to handle dialog closing
     txnWorkFlowDialogEmit(value) {
