@@ -288,13 +288,37 @@
         DEBUG: Dialog should be open! TxnWorkFlowDialog = {{ TxnWorkFlowDialog }}
       </div>
       
-      <!-- Fixed WorkflowDialog component -->
+      <!-- BASIC VUETIFY DIALOG TEST -->
+      <v-dialog 
+        v-model="TxnWorkFlowDialog" 
+        max-width="400px"
+        :z-index="9999"
+        persistent
+      >
+        <v-card style="z-index: 10000;">
+          <v-card-title style="background: green; color: white;">
+            BASIC DIALOG TEST - SUCCESS!
+          </v-card-title>
+          <v-card-text>
+            <p>If you can see this, Vuetify dialogs work!</p>
+            <p>TxnWorkFlowDialog value: {{ TxnWorkFlowDialog }}</p>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn @click="TxnWorkFlowDialog = false">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+      
+      <!-- Original WorkflowDialog component (commented out for testing) -->
+      <!--
       <WorkflowDialog
         v-model="TxnWorkFlowDialog"
         :menthumCore="menthumCore"
         @update:modelValue="txnWorkFlowDialogEmit"
         @clicked="txnWorkFlowDialogEmit"
       />
+      -->
     </v-card>
   </div>
 </template>
